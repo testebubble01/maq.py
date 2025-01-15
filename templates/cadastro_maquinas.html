@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Máquinas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-container h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+
+        .alert {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            color: white;
+            text-align: center;
+        }
+
+        .alert.success {
+            background-color: green;
+        }
+
+        .alert.danger {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <!-- Exibir mensagens -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div>
+                {% for category, message in messages %}
+                    <div class="alert {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="form-container">
+        <h1>Cadastro de Máquinas</h1>
+        <form action="/cadastrar_maquina" method="POST">
+            <div class="form-group">
+                <label for="ponto">Nome do Ponto:</label>
+                <input type="text" id="ponto" name="ponto" placeholder="Digite o nome do ponto" required>
+            </div>
+            <div class="form-group">
+                <label for="tipo_jogo">Tipo de Jogo:</label>
+                <input type="text" id="tipo_jogo" name="tipo_jogo" required>
+            </div>
+            <div class="form-group">
+                <label for="numero_maquina">Número da Máquina:</label>
+                <input type="number" id="numero_maquina" name="numero_maquina" required>
+            </div>
+            <div class="form-group">
+                <label for="relogio_entrada">Relógio de Entrada:</label>
+                <input type="number" id="relogio_entrada" name="relogio_entrada" required>
+            </div>
+            <div class="form-group">
+                <label for="relogio_saida">Relógio de Saída:</label>
+                <input type="number" id="relogio_saida" name="relogio_saida" required>
+            </div>
+            <div class="form-group">
+                <label for="comissao">Comissão (%):</label>
+                <input type="number" id="comissao" name="comissao" min="0" max="100" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Cadastrar Máquina</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

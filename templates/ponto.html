@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ponto</title>
+    <style>
+        /* Estilos gerais do corpo */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f9;
+        }
+
+        /* Estilos do container principal */
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Títulos da página */
+        h1 {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        /* Estilo para o texto do usuário */
+        .email {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1em;
+            color: #333;
+        }
+
+        /* Estilos das seções de cada máquina */
+        .machine {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .machine:last-child {
+            border-bottom: none;
+        }
+
+        /* Estilos dos grupos de formulários */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .form-group input:disabled {
+            background-color: #f9f9f9;
+        }
+
+        /* Estilos dos totais */
+        .totals {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .totals div {
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+
+        .totals div span {
+            font-weight: bold;
+        }
+
+        /* Botões */
+        .buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            width: 100%;
+            max-width: 300px;
+            display: none; /* Botão começa invisível */
+        }
+
+        .buttons button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Título principal -->
+        <h1>Ponto: {{ ponto_nome }}</h1>
+
+        <!-- Informações do usuário -->
+        <div class="email">Usuário: {{ usuario_email }}</div>
+
+        <!-- Loop para exibir informações de cada máquina -->
+        {% for maquina in maquinas %}
+        <div class="machine">
+            <h2>Máquina {{ maquina.numero_maquina }} - {{ maquina.tipo_jogo }}</h2>
+
+            <div class="form-group">
+                <label>Relógio de Entrada (Última Leitura):</label>
+                <input type="text" value="{{ maquina.relogio_entrada_anterior }}" disabled>
+            </div>
+
+            <div class="form-group">
+                <label>Relógio de Saída (Última Leitura):</label>
+                <input type="text" value="{{ maquina.relogio_saida_anterior }}" disabled>
+            </div>
+
+            <div class="form-group">
+                <label>Relógio de Entrada (Atual):</label>
+                <input type="number" id="entrada_atual_{{ maquina.numero_maquina }}" placeholder="Digite o valor" onchange="atualizarValores('{{ maquina.numero_maquina }}', {{ maquina.relogio_entrada_anterior }}, {{ maquina.relogio_saida_anterior }}, {{ maquina.comissao }})">
+            </div>
+
+            <div class="form-group">
+                <label>Relógio de Saída (Atual):</label>
+                <input type="number" id="saida_atual_{{ maquina.numero_maquina }}" placeholder="Digite o valor" onchange="atualizarValores('{{ maquina.numero_maquina }}', {{ maquina.relogio_entrada_anterior }}, {{ maquina.relogio_saida_anterior }}, {{ maquina.comissao }})">
+            </div>
+
+            <div class="totals">
+                <div>Valor Entrado: <span id="valor_entrada_{{ maquina.numero_maquina }}">0</span></div>
+                <div>Valor Saído: <span id="valor_saida_{{ maquina.numero_maquina }}">0</span></div>
+                <div>Lucro Bruto: <span id="lucro_bruto_{{ maquina.numero_maquina }}">R$ 0,00</span></div>
+                <div>Lucro Líquido: <span id="lucro_liquido_{{ maquina.numero_maquina }}">R$ 0,00</span></div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Exibição dos totais gerais -->
+        <div class="totals">
+            <div>Total Bruto: <span id="total_bruto">R$ 0,00</span></div>
+            <div>Total Líquido: <span id="total_liquido">R$ 0,00</span></div>
+        </div>
+
+        <!-- Botão de registrar leitura -->
+        <div class="buttons">
+            <button id="registrarBotao" onclick="registrarLeitura()">Registrar Leitura</button>
+        </div>
+    </div>
+
+    <script>
+        // Função para atualizar valores de cada máquina
+        function atualizarValores(maquinaNumero, entradaAnterior, saidaAnterior, comissao) {
+            const entradaAtual = parseFloat(document.getElementById(`entrada_atual_${maquinaNumero}`).value) || 0;
+            const saidaAtual = parseFloat(document.getElementById(`saida_atual_${maquinaNumero}`).value) || 0;
+
+            const valorEntrado = entradaAtual - entradaAnterior;
+            const valorSaido = saidaAtual - saidaAnterior;
+            const lucroBruto = valorEntrado - valorSaido;
+            const lucroLiquido = lucroBruto - (lucroBruto * (comissao / 100));
+
+            document.getElementById(`valor_entrada_${maquinaNumero}`).textContent = valorEntrado.toFixed(2);
+            document.getElementById(`valor_saida_${maquinaNumero}`).textContent = valorSaido.toFixed(2);
+            document.getElementById(`lucro_bruto_${maquinaNumero}`).textContent = lucroBruto.toFixed(2).replace('.', ',');
+            document.getElementById(`lucro_liquido_${maquinaNumero}`).textContent = lucroLiquido.toFixed(2).replace('.', ',');
+
+            atualizarTotais();
+            verificarCamposPreenchidos();
+        }
+
+        // Função para atualizar os totais gerais
+        function atualizarTotais() {
+            let totalBruto = 0;
+            let totalLiquido = 0;
+
+            const brutoElements = document.querySelectorAll("[id^='lucro_bruto_']");
+            const liquidoElements = document.querySelectorAll("[id^='lucro_liquido_']");
+
+            brutoElements.forEach(el => {
+                const valor = parseFloat(el.textContent.replace('R$', '').trim().replace(',', '.')) || 0;
+                totalBruto += valor;
+            });
+
+            liquidoElements.forEach(el => {
+                const valor = parseFloat(el.textContent.replace('R$', '').trim().replace(',', '.')) || 0;
+                totalLiquido += valor;
+            });
+
+            document.getElementById('total_bruto').textContent = totalBruto.toFixed(2).replace('.', ',');
+            document.getElementById('total_liquido').textContent = totalLiquido.toFixed(2).replace('.', ',');
+        }
+
+        // Função para verificar se todos os campos estão preenchidos
+        function verificarCamposPreenchidos() {
+    const camposPreenchidos = Array.from(document.querySelectorAll("input[type='number']"))
+        .every(campo => campo.value.trim() !== '');
+
+    const botao = document.getElementById('registrarBotao');
+    botao.style.display = camposPreenchidos ? 'block' : 'none';
+}
+
+        // Adiciona o evento 'oninput' nos campos de entrada e saída
+        {% for maquina in maquinas %}
+        document.getElementById(`entrada_atual_{{ maquina.numero_maquina }}`).oninput = verificarCamposPreenchidos;
+        document.getElementById(`saida_atual_{{ maquina.numero_maquina }}`).oninput = verificarCamposPreenchidos;
+        {% endfor %}
+
+        // Função para registrar a leitura no backend
+        function registrarLeitura() {
+    const maquinas = [];
+
+    // Captura os dados de cada máquina
+    {% for maquina in maquinas %}
+    maquinas.push({
+        numero_maquina: "{{ maquina.numero_maquina }}",
+        entradaAtual: parseFloat(document.getElementById(`entrada_atual_{{ maquina.numero_maquina }}`).value) || 0,
+        saidaAtual: parseFloat(document.getElementById(`saida_atual_{{ maquina.numero_maquina }}`).value) || 0,
+        entradaAnterior: {{ maquina.relogio_entrada_anterior }},
+        saidaAnterior: {{ maquina.relogio_saida_anterior }},
+        comissao: {{ maquina.comissao }}
+    });
+    {% endfor %}
+
+    // Captura o total líquido exibido na página
+    const totalLiquido = parseFloat(document.getElementById('total_liquido').textContent.replace('R$', '').replace(',', '.')) || 0;
+
+    // Captura os valores de ponto e usuário diretamente do HTML
+    const ponto = "{{ ponto_nome }}";
+    const usuario = "{{ usuario_email }}";
+
+    // Envia os dados ao backend usando fetch
+    fetch('/registrar_leitura', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ponto, usuario, maquinas, totalLiquido }) // Inclui o total líquido
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            window.location.href = data.redirect;
+        } else {
+            alert('Erro ao registrar leitura: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Erro ao conectar com o servidor: ' + error);
+    });
+}
+
+    </script>
+</body>
+</html>
+
