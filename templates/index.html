@@ -1,0 +1,155 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+import sqlite3
+from datetime import datetime, timedelta
+
+app = Flask(__name__)
+app.secret_key = 'sua_chave_secreta_aqui'  # Necessário para usar flash messages
+
+# Caminho do banco de dados
+caminho_banco = r"C:\\Users\\Bem Vindo\\Desktop\\teste\\banco_de_dados.db"
+
+# Função para obter o horário local (UTC-3)
+def obter_horario_local():
+    return (datetime.utcnow() - timedelta(hours=3)).strftime('%Y-%m-%d %H:%M:%S')
+
+# Função para criar tabelas, se elas não existirem
+def criar_tabelas():
+    try:
+        conn = sqlite3.connect(caminho_banco)
+        c = conn.cursor()
+
+        # Criar tabela de usuários, se não existir
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            senha TEXT NOT NULL,
+            tipo_usuario TEXT NOT NULL,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # Criar tabela de leitura para cadastro de máquinas, se não existir
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS leitura (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ponto TEXT NOT NULL,
+            tipo_jogo TEXT NOT NULL,
+            numero_maquina INTEGER NOT NULL,
+            relogio_entrada INTEGER NOT NULL,
+            relogio_saida INTEGER NOT NULL,
+            comissao REAL DEFAULT 0,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # Criar tabela financeiro, se não existir
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS financeiro (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            liquido REAL NOT NULL,
+            ponto TEXT NOT NULL,
+            usuario TEXT NOT NULL,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP,
+            acerto REAL,
+            despesa TEXT,
+            obs_despesa TEXT,
+            tipo_despesa TEXT,
+            criado_por TEXT
+        )
+        ''')
+
+        conn.commit()
+        print("Tabelas criadas ou verificadas com sucesso!")
+
+    except sqlite3.Error as e:
+        print(f"Erro ao criar tabelas: {e}")
+
+    finally:
+        conn.close()
+
+# Rota principal
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Rota para exibir a página de seleção de pontos
+@app.route('/selecionar_ponto')
+def selecionar_ponto():
+    try:
+        conn = sqlite3.connect(caminho_banco)
+        c = conn.cursor()
+
+        # Buscar todos os pontos distintos do banco de dados
+        c.execute("SELECT DISTINCT ponto FROM leitura")
+        pontos = [row[0] for row in c.fetchall()]
+
+        return render_template('selecionar_ponto.html', pontos=pontos)
+
+    except sqlite3.Error as e:
+        flash(f"Erro ao carregar pontos: {e}", "danger")
+        return redirect(url_for('index'))
+
+    finally:
+        conn.close()
+
+# Rota para exibir a página do ponto selecionado
+@app.route('/ponto', methods=['GET', 'POST'])
+def ponto():
+    try:
+        # Capturar o nome do ponto dependendo do método
+        if request.method == 'POST':
+            ponto_nome = request.form['ponto']
+        else:
+            ponto_nome = request.args.get('ponto')
+
+        # Exemplo de usuário logado (simulação)
+        usuario_email = "fuleragem98@gmail.com"
+
+        conn = sqlite3.connect(caminho_banco)
+        c = conn.cursor()
+
+        # Buscar a última leitura associada ao ponto selecionado
+        c.execute('''
+        SELECT tipo_jogo, numero_maquina, 
+               relogio_entrada, relogio_saida, comissao, data_criacao
+        FROM leitura
+        WHERE ponto = ?
+        AND data_criacao = (
+            SELECT MAX(data_criacao)
+            FROM leitura AS subquery
+            WHERE subquery.ponto = leitura.ponto
+            AND subquery.numero_maquina = leitura.numero_maquina
+        )
+        ORDER BY data_criacao DESC
+        ''', (ponto_nome,))
+        maquinas = c.fetchall()
+
+        # Organizar os dados das máquinas em um formato mais fácil para o HTML
+        maquinas_formatadas = []
+        for maquina in maquinas:
+            maquinas_formatadas.append({
+                'tipo_jogo': maquina[0],
+                'numero_maquina': maquina[1],
+                'relogio_entrada_anterior': maquina[2],
+                'relogio_saida_anterior': maquina[3],
+                'comissao': maquina[4],
+                'data_criacao': maquina[5]
+            })
+
+        return render_template('ponto.html', ponto_nome=ponto_nome, usuario_email=usuario_email, maquinas=maquinas_formatadas)
+
+    except sqlite3.Error as e:
+        flash(f"Erro ao carregar dados do ponto: {e}", "danger")
+        return redirect(url_for('selecionar_ponto'))
+
+    finally:
+        conn.close()
+
+# Outras rotas adicionais continuam...
+
+# Inicializar o sistema e criar tabelas
+if __name__ == "__main__":
+    criar_tabelas()
+    app.run(debug=True, host='0.0.0.0', port=5000)
