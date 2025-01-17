@@ -23,13 +23,13 @@ def criar_tabelas():
         c.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
             senha TEXT NOT NULL,
             tipo_usuario TEXT NOT NULL,
             data_criacao TEXT DEFAULT CURRENT_TIMESTAMP
         )
         ''')
+
 
         c.execute('''
         CREATE TABLE IF NOT EXISTS leitura (
@@ -148,8 +148,53 @@ def ponto():
 
 
 
-@app.route('/cadastro_de_usuarios')
+@app.route('/cadastro_de_usuarios', methods=['GET', 'POST'])
 def cadastro_de_usuarios():
+    if request.method == 'POST':
+        try:
+            # Captura os dados do formulário
+            tipo_usuario = request.form['tipo_usuario']
+            email = request.form['email']
+            senha = request.form['senha']
+
+            # Validação básica dos campos
+            if not tipo_usuario or not email or not senha:
+                flash("Todos os campos são obrigatórios!", "danger")
+                return redirect(url_for('cadastro_de_usuarios'))
+
+            # Conexão com o banco de dados
+            conn = sqlite3.connect(caminho_banco)
+            c = conn.cursor()
+
+            # Verifica se o e-mail já está cadastrado
+            c.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
+            if c.fetchone():
+                flash("Erro: O e-mail já está em uso!", "danger")
+                return redirect(url_for('cadastro_de_usuarios'))
+
+            # Hash da senha para segurança
+            senha_hash = hashpw(senha.encode('utf-8'), gensalt())
+
+            # Insere os dados no banco
+            c.execute('''
+                INSERT INTO usuarios (tipo_usuario, email, senha, data_criacao)
+                VALUES (?, ?, ?, ?)
+            ''', (tipo_usuario, email, senha_hash.decode('utf-8'), obter_horario_local()))
+
+            # Confirma a transação e exibe mensagem de sucesso
+            conn.commit()
+            flash("Usuário cadastrado com sucesso!", "success")
+            return redirect(url_for('cadastro_de_usuarios'))
+
+        except sqlite3.Error as e:
+            flash(f"Erro ao cadastrar usuário: {e}", "danger")
+            return redirect(url_for('cadastro_de_usuarios'))
+
+        finally:
+            if conn:
+                conn.close()
+
+    # Método GET: Renderiza o formulário de cadastro
     return render_template('cadastro_de_usuarios.html')
 
 @app.route('/cadastro_maquinas', methods=['GET', 'POST'])
