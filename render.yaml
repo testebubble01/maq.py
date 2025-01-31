@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: appmaq
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python maq.py"
